@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { useIframeSdk } from '@whop/react';
 import { useAuth } from '../contexts/AuthContext';
 
@@ -9,64 +9,107 @@ export function WhopIntegration() {
 	const iframeSdk = useIframeSdk();
 	const [isInitializing, setIsInitializing] = useState(true);
 	const [error, setError] = useState<string | null>(null);
+	const [retryCount, setRetryCount] = useState(0);
 	const [debugInfo, setDebugInfo] = useState<string>('');
 
-	useEffect(() => {
-		handleWhopAuthentication();
-	}, []);
+	const MAX_RETRIES = 3;
+	const RETRY_DELAY = 2000; // 2 seconds
 
-	const handleWhopAuthentication = async () => {
+	const handleWhopAuthentication = useCallback(async () => {
 		try {
 			setIsInitializing(true);
 			setError(null);
 			
-			// Debug information
+			// Get authentication data
 			const urlParams = new URLSearchParams(window.location.search);
 			const accessToken = urlParams.get('access_token') || urlParams.get('token');
 			const isInIframe = window.self !== window.top;
 			
-			// Check if iframeSdk has user data (using any to bypass type issues for now)
+			// Get SDK user data with proper type checking
 			const sdkUser = (iframeSdk as any)?.user;
 			
-			setDebugInfo(`URL Token: ${accessToken ? 'Present' : 'None'}, In Iframe: ${isInIframe}, SDK User: ${sdkUser ? 'Present' : 'None'}`);
+			// Update debug information
+			setDebugInfo(`URL Token: ${accessToken ? 'Present' : 'None'}, In Iframe: ${isInIframe}, SDK User: ${sdkUser ? 'Present' : 'None'}, Retry: ${retryCount}`);
 			
 			console.log('Whop Integration Debug:', {
 				accessToken: !!accessToken,
 				isInIframe,
 				iframeSdkUser: !!sdkUser,
-				user: !!user
+				user: !!user,
+				retryCount
 			});
 
-			// Check if we're in a Whop iframe with SDK
+			// Priority 1: Use Whop iframe SDK authentication (most reliable)
 			if (iframeSdk && sdkUser && sdkUser.accessToken) {
 				console.log('Using Whop iframe SDK authentication');
 				if (!user) {
 					await login(sdkUser.accessToken);
 				}
-			} 
-			// Check for URL parameters (fallback)
-			else if (accessToken && !user) {
+				return;
+			}
+			
+			// Priority 2: Use URL parameter authentication (fallback)
+			if (accessToken && !user) {
 				console.log('Using URL parameter authentication');
 				await login(accessToken);
-			} 
-			// Check if we're in Whop environment but no token (development/testing)
-			else if (isInIframe && !user) {
-				console.log('In Whop iframe but no token - allowing development mode');
-				// Instead of showing an error, allow development mode
-				setError('Whop SDK not initialized. You can enable development mode to test the app.');
+				return;
 			}
-			// Clear session if not in Whop and user exists
-			else if (!isInIframe && !accessToken && user) {
+			
+			// Priority 3: Handle development/testing scenarios
+			if (isInIframe && !user) {
+				console.log('In Whop iframe but no token - development mode available');
+				setError('Whop SDK not initialized. You can enable development mode to test the app.');
+				return;
+			}
+			
+			// Priority 4: Clear session if not in Whop environment
+			if (!isInIframe && !accessToken && user) {
 				console.log('Not in Whop environment, clearing session');
 				await logout();
+				return;
 			}
+			
+			// If we reach here, authentication is successful or not needed
+			console.log('Authentication flow completed successfully');
+			
 		} catch (error) {
 			console.error('Error handling Whop authentication:', error);
-			setError(`Authentication failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+			
+			// Handle specific error types
+			let errorMessage = 'Authentication failed';
+			if (error instanceof Error) {
+				if (error.message.includes('Invalid or expired access token')) {
+					errorMessage = 'Your session has expired. Please refresh the page.';
+				} else if (error.message.includes('Access denied')) {
+					errorMessage = 'Access denied. Please check your Whop membership.';
+				} else if (error.message.includes('User not found')) {
+					errorMessage = 'User account not found. Please contact support.';
+				} else if (error.message.includes('service temporarily unavailable')) {
+					errorMessage = 'Whop service is temporarily unavailable. Please try again.';
+				} else {
+					errorMessage = `Authentication failed: ${error.message}`;
+				}
+			}
+			
+			setError(errorMessage);
 		} finally {
 			setIsInitializing(false);
 		}
-	};
+	}, [iframeSdk, user, login, logout, retryCount]);
+
+	const handleRetry = useCallback(async () => {
+		if (retryCount < MAX_RETRIES) {
+			setRetryCount(prev => prev + 1);
+			await new Promise(resolve => setTimeout(resolve, RETRY_DELAY));
+			await handleWhopAuthentication();
+		} else {
+			setError('Maximum retry attempts reached. Please refresh the page or contact support.');
+		}
+	}, [retryCount, handleWhopAuthentication]);
+
+	useEffect(() => {
+		handleWhopAuthentication();
+	}, [handleWhopAuthentication]);
 
 	// Show loading state while initializing
 	if (isInitializing) {
@@ -75,7 +118,9 @@ export function WhopIntegration() {
 				<div className="bg-card p-6 rounded-lg shadow-lg border border-border">
 					<div className="flex items-center space-x-3">
 						<div className="w-6 h-6 border-2 border-[#1754d8] border-t-transparent rounded-full animate-spin"></div>
-						<span className="text-foreground">Connecting to Whop...</span>
+						<span className="text-foreground">
+							{retryCount > 0 ? `Connecting to Whop... (Attempt ${retryCount + 1})` : 'Connecting to Whop...'}
+						</span>
 					</div>
 					{debugInfo && (
 						<div className="mt-2 text-xs text-foreground/60">
@@ -101,17 +146,19 @@ export function WhopIntegration() {
 						<h3 className="text-lg font-semibold text-foreground mb-2">Whop Integration Issue</h3>
 						<p className="text-foreground/70 mb-4">{error}</p>
 						<div className="space-y-2">
+							{retryCount < MAX_RETRIES && (
+								<button
+									onClick={handleRetry}
+									className="bg-[#1754d8] text-white px-4 py-2 rounded-lg hover:bg-[#1754d8]/90 transition-colors w-full"
+								>
+									Retry Connection ({MAX_RETRIES - retryCount} attempts left)
+								</button>
+							)}
 							<button
 								onClick={enableDevMode}
-								className="bg-[#1754d8] text-white px-4 py-2 rounded-lg hover:bg-[#1754d8]/90 transition-colors w-full"
-							>
-								Enable Development Mode
-							</button>
-							<button
-								onClick={() => handleWhopAuthentication()}
 								className="bg-gray-500 text-white px-4 py-2 rounded-lg hover:bg-gray-600 transition-colors w-full"
 							>
-								Retry Connection
+								Enable Development Mode
 							</button>
 							<button
 								onClick={() => window.location.reload()}
