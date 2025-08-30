@@ -1,0 +1,41 @@
+#!/usr/bin/env node
+
+const fs = require('fs');
+const path = require('path');
+
+console.log('🚀 Whop App Environment Setup\n');
+
+const envTemplate = `# Whop Configuration
+NEXT_PUBLIC_WHOP_APP_ID=your_whop_app_id_here
+WHOP_API_KEY=your_whop_api_key_here
+NEXT_PUBLIC_WHOP_AGENT_USER_ID=your_whop_agent_user_id_here
+NEXT_PUBLIC_WHOP_COMPANY_ID=your_whop_company_id_here
+WHOP_WEBHOOK_SECRET=your_whop_webhook_secret_here
+
+# Firebase Configuration
+NEXT_PUBLIC_FIREBASE_API_KEY=your_firebase_api_key_here
+NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN=your_project.firebaseapp.com
+NEXT_PUBLIC_FIREBASE_PROJECT_ID=your_project_id_here
+NEXT_PUBLIC_FIREBASE_APP_ID=your_firebase_app_id_here
+NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID=your_messaging_sender_id_here
+NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID=your_measurement_id_here
+NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET=your_project.appspot.com
+`;
+
+const envPath = path.join(process.cwd(), '.env.local');
+
+if (fs.existsSync(envPath)) {
+  console.log('⚠️  .env.local already exists. Skipping creation.');
+  console.log('Please update your existing .env.local file with the required variables.');
+} else {
+  fs.writeFileSync(envPath, envTemplate);
+  console.log('✅ Created .env.local file');
+  console.log('📝 Please update the values in .env.local with your actual credentials');
+}
+
+console.log('\n📋 Next Steps:');
+console.log('1. Get your Whop credentials from https://whop.com/dashboard/developer/');
+console.log('2. Get your Firebase credentials from https://console.firebase.google.com/');
+console.log('3. Update the values in .env.local');
+console.log('4. Run "pnpm dev" to start development');
+console.log('5. Follow the SETUP_GUIDE.md for complete setup instructions');

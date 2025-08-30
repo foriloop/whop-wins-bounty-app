@@ -1,0 +1,116 @@
+@layer theme, base, frosted_ui, components, utilities;
+
+@import "tailwindcss/theme.css" layer(theme);
+@import "tailwindcss/preflight.css" layer(base);
+@import "tailwindcss/utilities.css" layer(utilities);
+@import "@whop/react/styles.css" layer(frosted_ui);
+
+@config '../tailwind.config.ts';
+
+body {
+	background: #ffffff;
+	color: #000000;
+	font-family: 'Inter', Arial, Helvetica, sans-serif;
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+	width: 8px;
+}
+
+::-webkit-scrollbar-track {
+	background: rgba(0, 0, 0, 0.1);
+	border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb {
+	background: rgba(0, 0, 0, 0.3);
+	border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+	background: rgba(0, 0, 0, 0.5);
+}
+
+/* Smooth transitions for all elements */
+* {
+	transition-property: color, background-color, border-color, text-decoration-color, fill, stroke, opacity, box-shadow, transform, filter, backdrop-filter;
+	transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+	transition-duration: 200ms;
+}
+
+/* Enhanced focus states */
+*:focus-visible {
+	outline: 2px solid #1754d8;
+	outline-offset: 2px;
+}
+
+/* Glassmorphism utilities */
+.glass {
+	background: rgba(255, 255, 255, 0.95);
+	backdrop-filter: blur(10px);
+	border: 1px solid rgba(0, 0, 0, 0.1);
+}
+
+.glass-dark {
+	background: rgba(255, 255, 255, 0.95);
+	backdrop-filter: blur(10px);
+	border: 1px solid rgba(0, 0, 0, 0.1);
+}
+
+/* FrostedUI specific enhancements */
+.bg-card\/80 {
+	background-color: rgba(255, 255, 255, 0.8);
+}
+
+.bg-card\/95 {
+	background-color: rgba(255, 255, 255, 0.95);
+}
+
+.border-border\/50 {
+	border-color: rgba(0, 0, 0, 0.1);
+}
+
+.text-foreground\/70 {
+	color: rgba(0, 0, 0, 0.7);
+}
+
+.text-foreground\/80 {
+	color: rgba(0, 0, 0, 0.8);
+}
+
+.text-foreground\/60 {
+	color: rgba(0, 0, 0, 0.6);
+}
+
+.text-foreground\/50 {
+	color: rgba(0, 0, 0, 0.5);
+}
+
+.text-foreground\/40 {
+	color: rgba(0, 0, 0, 0.4);
+}
+
+.bg-muted\/30 {
+	background-color: rgba(0, 0, 0, 0.03);
+}
+
+.bg-muted\/50 {
+	background-color: rgba(0, 0, 0, 0.05);
+}
+
+.bg-muted\/70 {
+	background-color: rgba(0, 0, 0, 0.07);
+}
+
+.hover\:bg-muted\/50:hover {
+	background-color: rgba(0, 0, 0, 0.05);
+}
+
+.hover\:bg-muted\/70:hover {
+	background-color: rgba(0, 0, 0, 0.07);
+}
+
+.bg-muted\/20 {
+	background-color: rgba(0, 0, 0, 0.02);
+}
