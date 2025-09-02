@@ -6,7 +6,7 @@ import { AppUser } from './types';
 export async function authenticateUser(accessToken: string): Promise<AppUser> {
 	try {
 		// Validate the access token and get user data from Whop
-		const userData = await whopSdk.withUser(accessToken).users.retrieveCurrentUser();
+		const userData = await whopSdk.withUser(accessToken).users.getCurrentUser();
 		
 		if (!userData || !userData.id) {
 			throw new Error('Invalid user data received from Whop');
