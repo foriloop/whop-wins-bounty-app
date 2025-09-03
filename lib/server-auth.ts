@@ -7,13 +7,14 @@ export async function authenticateUser(accessToken: string): Promise<AppUser> {
 	try {
 		// Validate the access token and get user data from Whop
 		const userData = await whopSdk.withUser(accessToken).users.getCurrentUser();
-		
-		if (!userData || !userData.user || !userData.user.id) {
+		// The SDK returns a viewer object: { user: { id, username, ... } }
+		const whopUser = userData?.user;
+		if (!whopUser?.id) {
 			throw new Error('Invalid user data received from Whop');
 		}
 
 		// Get or create user in our database
-		const userRef = doc(db, 'users', userData.user.id);
+		const userRef = doc(db, 'users', whopUser.id);
 		const userSnap = await getDoc(userRef);
 
 		if (userSnap.exists()) {
@@ -21,7 +22,7 @@ export async function authenticateUser(accessToken: string): Promise<AppUser> {
 			const existingUserData = userSnap.data() as AppUser;
 			const updatedFields = {
 				updatedAt: Date.now(),
-				username: userData.user.username || existingUserData.username || `User${userData.user.id.slice(-4)}`
+				username: whopUser.username || existingUserData.username || `User${whopUser.id.slice(-4)}`
 			};
 			
 			await updateDoc(userRef, updatedFields);
@@ -34,8 +35,13 @@ export async function authenticateUser(accessToken: string): Promise<AppUser> {
 		} else {
 			// Create new user with data from Whop
 			const newUser: AppUser = {
+<<<<<<< HEAD
 				userId: userData.user.id,
 				username: userData.user.username || `User${userData.user.id.slice(-4)}`,
+=======
+				userId: whopUser.id,
+				username: whopUser.username || `User${whopUser.id.slice(-4)}`,
+>>>>>>> e6917df (fix: update Whop SDK method calls and user data handling)
 				role: 'member',
 				points: 0,
 				badge: 'Initiate',
